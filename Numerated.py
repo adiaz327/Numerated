@@ -3,6 +3,7 @@ from requests.compat import urljoin, quote_plus
 import json
 import os
 import datetime
+from datetime import datetime
 
 
 BASE_URL = "https://api-v3.mbta.com/"
@@ -59,17 +60,17 @@ def get_valid_stops(route):
     possible_stops = [x["id"] for x in resp_stops]
     return possible_stops
 
+def parse_depart_time(depart_str):
+    return datetime.strptime(depart_str,"%Y-%m-%dT%H:%M:%S-04:00")
+
 def get_prediction_depart_time(route, direction, stop):
     specific_stop_params = dict(route=route, direction_id=direction, id=stop)
     specific_stop = requests.get(STOPS_END_POINT, params=specific_stop_params).json()["data"][0]
     predictions_params = dict(stop=specific_stop["id"],sort="departure_time")
     resp_predictions =  requests.get(PREDICTION_END_POINT, params=predictions_params).json()["data"]
-    resp_predictions= [x for x in resp_predictions if x["attributes"]["departure_time"] != None]
+    resp_predictions= [x for x in resp_predictions if x["attributes"]["departure_time"] != None and parse_depart_time(x["attributes"]["departure_time"]) > datetime.now()]
     next_depart = resp_predictions[0]["attributes"]["departure_time"]
     return next_depart
-
-def parse_depart_time(depart_str):
-    return datetime.datetime.strptime(depart_str,"%Y-%m-%dT%H:%M:%S-04:00")
 
 def main():
     # Get valid routes
@@ -98,5 +99,5 @@ def main():
     print("your earliest predicted departure is at: ",depart_time)
 
 if __name__ == "__main__":
-    main
+    main()
 
