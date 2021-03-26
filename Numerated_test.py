@@ -1,6 +1,10 @@
 import Numerated
 import unittest
+import requests
+from unittest.mock import MagicMock
+from requests.compat import urljoin, quote_plus
 
+BASE_URL = "https://api-v3.mbta.com/"
 mock_resp_routes = [
         {
             "id":1,
@@ -38,15 +42,44 @@ class TestNumerated(unittest.TestCase):
     def test_routes_data(self):
         # Here the entire test will be mocked method calls and we will only do assertions based
         # on what options are passed to methods
-        pass
+        requests.get = MagicMock(return_value=requests)
+        requests.json = MagicMock(return_value={"data":"mocked out"})
+        routes_params = dict(filter="0,1")
+        ROUTES_END_POINT = urljoin(BASE_URL,quote_plus("routes"))
+        val = Numerated.routes_data()
+        requests.get.assert_called_with(ROUTES_END_POINT, params=routes_params)
+        self.assertEqual(val, "mocked out")
+        
     def test_get_valid_stops(self):
         # Here we need to stub out a response to the requests.get method and make assertions on what
         # options are passed to it
-        pass
-    def test_get_prediction_depart_time(self):
-        # Here we need to stub out two reponses to the request.get method and additionally make assertions
-        # on the returned obj
-        pass
+        stop = "Red"
+        stop_params = dict(route=stop)
+        requests.get = MagicMock(return_value=requests)
+        requests.json = MagicMock(return_value={"data":[{"id":1, "val":"mocked out"}]})
+        stop_end_point = Numerated.STOPS_END_POINT
+        val = Numerated.get_valid_stops(stop)
+        requests.get.assert_called_with(stop_end_point, params=stop_params)
+        self.assertEqual(val, [1])
+
+    def test_get_specific_stop(self):
+        specific_stop_params = dict(route="Red", direction_id="up", id=1)
+        requests.get = MagicMock(return_value=requests)
+        requests.json = MagicMock(return_value={"data":[{"id":1, "val":"mocked out"}]})
+        stop_end_point = Numerated.STOPS_END_POINT
+        val = Numerated.get_specific_stop("Red", "up", 1)
+        requests.get.assert_called_with(stop_end_point, params=specific_stop_params)
+        self.assertEqual(val, {"id":1, "val":"mocked out"})
+
+    def test_get_possible_predictions(self):
+        get_specific_stop = MagicMock(return_value={"id":1, "val":"mocked out"})
+        predictions_params = dict(stop=1,sort="departure_time")
+        requests.get = MagicMock(return_value=requests)
+        requests.json = MagicMock(return_value={"data":[{"id":1, "val":"mocked out"}]})
+        val = Numerated.get_possible_predictions("Red", "up", 1)
+        requests.get.assert_called_with(Numerated.PREDICTION_END_POINT, params=predictions_params)
+        self.assertEqual(val, [{"id":1, "val":"mocked out"}])
+
 
     # Next section if I had more time would be the full mocking of method generic_user_input method and the main method
     # which both function as a kind of integration of our unit tested methods. Good practice would be to spend most

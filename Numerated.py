@@ -63,11 +63,19 @@ def get_valid_stops(route):
 def parse_depart_time(depart_str):
     return datetime.strptime(depart_str,"%Y-%m-%dT%H:%M:%S-04:00")
 
-def get_prediction_depart_time(route, direction, stop):
+def get_specific_stop(route, direction, stop):
     specific_stop_params = dict(route=route, direction_id=direction, id=stop)
     specific_stop = requests.get(STOPS_END_POINT, params=specific_stop_params).json()["data"][0]
+    return specific_stop
+
+def get_possible_predictions(route, direction, stop):
+    specific_stop = get_specific_stop(route, direction, stop)
     predictions_params = dict(stop=specific_stop["id"],sort="departure_time")
     resp_predictions =  requests.get(PREDICTION_END_POINT, params=predictions_params).json()["data"]
+    return resp_predictions
+
+def get_prediction_depart_time(route, direction, stop):
+    resp_predictions = get_possible_predictions(route, direction, stop)
     resp_predictions= [x for x in resp_predictions if x["attributes"]["departure_time"] != None and parse_depart_time(x["attributes"]["departure_time"]) > datetime.now()]
     next_depart = resp_predictions[0]["attributes"]["departure_time"]
     return next_depart
